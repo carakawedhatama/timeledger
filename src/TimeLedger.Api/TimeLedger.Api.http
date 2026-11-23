@@ -1,0 +1,62 @@
+@api = http://localhost:5080
+
+### Sign in (demo payroll admin; seeded in Development only)
+# @name login
+POST {{api}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "admin@timeledger.local", "password": "TimeLedger-Demo-2026" }
+
+### Paste the accessToken from the response here
+@token = <access token>
+
+### Who am I
+GET {{api}}/api/auth/me
+Authorization: Bearer {{token}}
+
+### Who is in right now (Redis-backed)
+GET {{api}}/api/presence
+Authorization: Bearer {{token}}
+
+### Employees
+GET {{api}}/api/employees
+Authorization: Bearer {{token}}
+
+### Clock in — send twice with the same key: the second returns 200 with Idempotent-Replayed: true
+POST {{api}}/api/clock-events
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Idempotency-Key: demo-punch-0001
+
+{ "employeeId": "<employee id>", "type": "ClockIn", "source": "Web" }
+
+### Pay periods
+GET {{api}}/api/pay-periods
+Authorization: Bearer {{token}}
+
+### Live timesheet preview (open period) or frozen lines (closed period)
+GET {{api}}/api/pay-periods/<period id>/timesheets
+Authorization: Bearer {{token}}
+
+### Close last month: freezes timesheets and publishes payroll.period_closed
+POST {{api}}/api/pay-periods/<period id>/close
+Authorization: Bearer {{token}}
+
+### Watch the deliveries (the mock provider fails ~30% with 503 to show retries)
+GET {{api}}/api/deliveries
+Authorization: Bearer {{token}}
+
+### What the mock payroll provider received
+GET {{api}}/mock/payroll-provider/received
+Authorization: Bearer {{token}}
+
+### Pending leave
+GET {{api}}/api/leave-requests?status=Pending
+Authorization: Bearer {{token}}
+
+### Approve leave (publishes leave.approved to the HR webhook)
+POST {{api}}/api/leave-requests/<leave id>/approve
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{}

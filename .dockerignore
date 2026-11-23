@@ -1,0 +1,11 @@
+# Local build output must not overwrite the container's own restore.
+**/bin
+**/obj
+**/node_modules
+**/dist
+**/TestResults
+.git
+.vs
+.vscode
+.idea
+.env

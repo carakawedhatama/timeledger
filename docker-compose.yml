@@ -1,0 +1,47 @@
+# A demo stack with published passwords, so every port is bound to loopback.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: timeledger
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports: ["127.0.0.1:5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d timeledger"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports: ["127.0.0.1:6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: src/TimeLedger.Api/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Postgres: Host=postgres;Database=timeledger;Username=postgres;Password=postgres
+      ConnectionStrings__Redis: redis:6379,abortConnect=false
+      MockProvider__BaseUrl: http://api:8080
+      # Empty means a random key per start (Development only), so restarts sign everyone out.
+      Auth__SigningKey: ${TIMELEDGER_SIGNING_KEY:-}
+      Cors__Origins__0: http://localhost:8080
+    ports: ["127.0.0.1:5080:8080"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  web:
+    build: ./web
+    ports: ["127.0.0.1:8080:80"]
+    depends_on: [api]
+
+volumes:
+  pgdata:
